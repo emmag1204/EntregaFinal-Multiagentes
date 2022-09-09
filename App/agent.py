@@ -68,6 +68,7 @@ class StreetModel(ap.Model):
         nCars = self.nCars = int(self.p["ncars"])
         self.cars = ap.AgentList(self, nCars)
         self.paso = 0
+        print(self.entries)
     
     def setUpSpawns(self):
         for i, spawn in enumerate(self.spawns):
@@ -124,38 +125,23 @@ class StreetModel(ap.Model):
         for car in cars:
             #SPAWNING
             CarPositions[str(self.paso)][car.name] = car.position
-            x, y = car.position
+            y, x = car.position
             name = car.name
             carrito = {
                 "name" : name,
-                "x" : x,
-                "y": y
+                "x" : x*580,
+                "y": y*580
             }
             self.CarJson[self.paso].append(carrito)
             
-            if car.onRoute == -1:
-                spawn_index = self.getSpawn(car.position)
-                car_prev = car.position
-                new_position = self.updateCarPosition(car.position, car.initial_movement)
-                car.position = new_position
-                self.street.move_by(car, car.initial_movement)
-                self.spawns[spawn_index].available = 1
-                car.onRoute = 0
-                
-            #HEADING TO ROUNDABOUT
-            if car.onRoute == 0:
-                new_position = self.updateCarPosition(car.position, car.initial_movement)
-                if new_position != car.start:
-                    self.street.move_by(car, car.initial_movement)
-                    car.position = new_position
-                elif new_position == car.start:
-                    start = self.route.findNode(new_position)
-                    if start.available == 1:
-                        self.street.move_by(car, car.initial_movement)
-                        car.position = new_position
-                        start.available = 0
-                        car.onRoute = 1
-
+            #EXITING ROUNDABOUT
+            if car.onRoute == 2:
+                if car.position == car.exit:
+                    current_position = self.route.findNode(car.position)
+                    current_position.available = 1
+                self.street.move_by(car, car.ending_movement)
+                car.position = self.updateCarPosition(car.position,car.ending_movement)
+            
             #ON ROUNDABOUT
             if car.onRoute == 1:
                 current_position = self.route.findNode(car.position)
@@ -168,13 +154,29 @@ class StreetModel(ap.Model):
                 elif current_position.data == car.exit:
                     car.onRoute = 2
 
-            #EXITING ROUNDABOUT
-            if car.onRoute == 2:
-                if car.position == car.exit:
-                    current_position = self.route.findNode(car.position)
-                    current_position.available = 1
-                self.street.move_by(car, car.ending_movement)
-                car.position = self.updateCarPosition(car.position,car.ending_movement)
+            #HEADING TO ROUNDABOUT
+            if car.onRoute == 0:
+                new_position = self.updateCarPosition(car.position, car.initial_movement)
+                if new_position != car.start:
+                    self.street.move_by(car, car.initial_movement)
+                    car.position = new_position
+                elif new_position == car.start:
+                    print("Llegue", car.position)
+                    start = self.route.findNode(new_position)
+                    if start.available == 1:
+                        self.street.move_by(car, car.initial_movement)
+                        car.position = new_position
+                        start.available = 0
+                        car.onRoute = 1
+
+            if car.onRoute == -1:
+                spawn_index = self.getSpawn(car.position)
+                car_prev = car.position
+                new_position = self.updateCarPosition(car.position, car.initial_movement)
+                car.position = new_position
+                self.street.move_by(car, car.initial_movement)
+                self.spawns[spawn_index].available = 1
+                car.onRoute = 0
 
         print("Se encuentra en ",self.paso, self.CarJson)
         self.paso += 1
@@ -189,11 +191,11 @@ class StreetModel(ap.Model):
             json_string = json.dumps(obj, default=lambda o: o.__dict__, sort_keys=False, indent=4)
             file.write(json_string)
 
-def runModel(nCars):
+def runModel(nCars,steps):
     parameters = {
         'size': 35,
         'n': 10, # Height and length of the grid
-        'steps': 100,
+        'steps': steps,
         'ncars': nCars
     }
     return StreetModel(parameters)

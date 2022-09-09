@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 @app.route("/simulate", methods = ['GET'])
 def agentpy_send_car_positions():
-    modelo = runModel(5)
+    modelo = runModel(10,100)
     modelo.run()
 
     SITE_ROOT = os.path.realpath(os.path.dirname(__file__))
