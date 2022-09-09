@@ -9,6 +9,11 @@ EXITS_INDEXES = [1, 12, 15, 26]
 SPAWNS = [(18,1),(33,18) ,(1, 16), (16,33)]
 CarPositions = {}
 
+carritos = {
+    "nCars" : 0,
+    "carPositions" : []
+}
+
 class CAR(ap.Agent):
     def setup(self):
         pass
@@ -29,6 +34,7 @@ class StreetModel(ap.Model):
 
     def setup(self):
         # Create grid (street)
+        self.CarJson =[]
         print("GENERE MODELO")
         self.street = ap.Grid(self, [self.p.size]*2, track_empty=True)
     
@@ -73,7 +79,7 @@ class StreetModel(ap.Model):
         STARTING_MOVEMENT = [(0,1), (-1,0), (1, 0), (0, -1)]
         ENDING_MOVEMENT = [(0,-1), (1,0), (-1, 0), (0, 1)]
         
-        car.name = "Car"+ str(self.spawned_cars)
+        car.name = "Car"+ str(self.spawned_cars+1)
         car.onRoute = -1
         car.condition= 1
         
@@ -113,9 +119,19 @@ class StreetModel(ap.Model):
         cars = self.cars[:self.spawned_cars]
         # print(self.paso)
         CarPositions[str(self.paso)] = {}
+        self.CarJson.append([])
+        
         for car in cars:
             #SPAWNING
             CarPositions[str(self.paso)][car.name] = car.position
+            x, y = car.position
+            name = car.name
+            carrito = {
+                "name" : name,
+                "x" : x,
+                "y": y
+            }
+            self.CarJson[self.paso].append(carrito)
             
             if car.onRoute == -1:
                 spawn_index = self.getSpawn(car.position)
@@ -160,13 +176,17 @@ class StreetModel(ap.Model):
                 self.street.move_by(car, car.ending_movement)
                 car.position = self.updateCarPosition(car.position,car.ending_movement)
 
+        print("Se encuentra en ",self.paso, self.CarJson)
         self.paso += 1
         if self.paso == self.p["steps"]:
-            self.createJson("positions.json")    
+            carritos["nCars"] = self.nCars
+            carritos["carPositions"] = self.CarJson
+            self.createJson("positions.json", CarPositions)  
+            self.createJson("test.json", carritos)  
             
-    def createJson(self, name):
+    def createJson(self, name, obj):
         with open(name, 'w') as file:
-            json_string = json.dumps(CarPositions, default=lambda o: o.__dict__, sort_keys=False, indent=4)
+            json_string = json.dumps(obj, default=lambda o: o.__dict__, sort_keys=False, indent=4)
             file.write(json_string)
 
 def runModel(nCars):
