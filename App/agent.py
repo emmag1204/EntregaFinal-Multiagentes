@@ -7,9 +7,8 @@ import json
 ENTRIES_INDEXES = [3, 16, 11, 24]
 EXITS_INDEXES = [1, 12, 15, 26]
 SPAWNS = [(18,1),(33,18) ,(1, 16), (16,33)]
-CarPositions = {}
 
-carritos = {
+carPositions = {
     "nCars" : 0,
     "carPositions" : []
 }
@@ -35,7 +34,6 @@ class StreetModel(ap.Model):
     def setup(self):
         # Create grid (street)
         self.CarJson =[]
-        print("GENERE MODELO")
         self.street = ap.Grid(self, [self.p.size]*2, track_empty=True)
     
         # Draw Roundabout
@@ -68,7 +66,6 @@ class StreetModel(ap.Model):
         nCars = self.nCars = int(self.p["ncars"])
         self.cars = ap.AgentList(self, nCars)
         self.paso = 0
-        print(self.entries)
     
     def setUpSpawns(self):
         for i, spawn in enumerate(self.spawns):
@@ -106,25 +103,21 @@ class StreetModel(ap.Model):
 
     def step(self):
         if self.spawned_cars < self.nCars:
-            # print(self.spawned_cars)
             carList = ap.AgentList(self, 1, CAR)
             carAgent = self.setUpCar(carList[0])
             spawn_index = self.getSpawn(carAgent.spawn)
             if self.spawns[spawn_index].available == 1:
-                print(f"placing {self.spawned_cars + 1}")
                 self.cars[self.spawned_cars] = carAgent
                 self.street._add_agent(self.cars[self.spawned_cars], carAgent.spawn, 'agents')
                 self.spawned_cars += 1                     
                 self.spawns[spawn_index].available = 0
 
         cars = self.cars[:self.spawned_cars]
-        # print(self.paso)
-        CarPositions[str(self.paso)] = {}
+        
         self.CarJson.append([])
         
         for car in cars:
             #SPAWNING
-            CarPositions[str(self.paso)][car.name] = car.position
             y, x = car.position
             name = car.name
             carrito = {
@@ -161,7 +154,6 @@ class StreetModel(ap.Model):
                     self.street.move_by(car, car.initial_movement)
                     car.position = new_position
                 elif new_position == car.start:
-                    print("Llegue", car.position)
                     start = self.route.findNode(new_position)
                     if start.available == 1:
                         self.street.move_by(car, car.initial_movement)
@@ -171,20 +163,17 @@ class StreetModel(ap.Model):
 
             if car.onRoute == -1:
                 spawn_index = self.getSpawn(car.position)
-                car_prev = car.position
                 new_position = self.updateCarPosition(car.position, car.initial_movement)
                 car.position = new_position
                 self.street.move_by(car, car.initial_movement)
                 self.spawns[spawn_index].available = 1
                 car.onRoute = 0
-
-        print("Se encuentra en ",self.paso, self.CarJson)
+        
         self.paso += 1
         if self.paso == self.p["steps"]:
-            carritos["nCars"] = self.nCars
-            carritos["carPositions"] = self.CarJson
-            self.createJson("positions.json", CarPositions)  
-            self.createJson("test.json", carritos)  
+            carPositions["nCars"] = self.nCars
+            carPositions["carPositions"] = self.CarJson  
+            self.createJson("positions.json", carPositions)  
             
     def createJson(self, name, obj):
         with open(name, 'w') as file:
